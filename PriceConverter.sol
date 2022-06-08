@@ -24,6 +24,11 @@ library PriceConverter { // library cant have state variables and cant send ethe
                  // as the price returned has 8 decimals originally
 }
 
+  function getVersion() public view returns (uint256){
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x8A753747A1Fa494EC906cE90E9f37563A8AF630e);
+        return priceFeed.version();
+    }
+    
     function getConversionRate(uint256 ethAmount) 
       internal 
       view 
