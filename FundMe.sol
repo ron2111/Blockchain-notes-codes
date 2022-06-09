@@ -5,18 +5,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.8;
 
+// constant & immutable keyword to reduce gas cost
  import "./PriceConverter.sol";
+
+ error NotOwner(); // error seclaration, can work in place of require statements when condition fails
+
 contract FundMe{
 using PriceConverter for uint256; // attaching it to uint256
-uint256 public minUsd = 50 * 10 ** 18; // to compare properly
+uint256 public constant MIN_USD = 50 * 10 ** 18; // to compare properly
+// saved gas using 'constant' as it doesnt need to change & hence takes no storage spot
+// naming convention for constant variables - All caps with _  [Saved arounf a $ of ETH]
 
  address[] public funders;
  mapping(address => uint256) public addressToAmountFunded; // mapping is like hash table
 
-address public owner; // to setip the owner of contract
+address public immutable i_owner; // to setup the owner of contract
+// 'immutable' are also set one time but outside the line they are declared
+// naming convention: start the nam with 'i_'
 
       constructor(){ // fucntion that gets called immediately when the contract is deployed
-        owner = msg.sender; // so that only the owner can withdraw funds
+        i_owner = msg.sender; // so that only the owner can withdraw funds
+        // cant modify it now, as its immutable
       }
 
    function fund() public payable{
@@ -28,7 +37,7 @@ address public owner; // to setip the owner of contract
     // require(getConversionRate(msg.value)>= minUsd, "Didn't send enough"); 
     //msg.vale gives the native blockchain's value
      
-     require(msg.value.getConversionRate() >= minUsd, "Didn't send enough"); // used like this with the help of li brary
+     require(msg.value.getConversionRate() >= MIN_USD, "Didn't send enough"); // used like this with the help of li brary
 // When you call a library function, these functions will receive the object they are called 
 // on as their first parameter, much like the variable self in Python
 
@@ -36,7 +45,7 @@ address public owner; // to setip the owner of contract
 // msg.value represents number of wei sent with the msg
 // getConversionRate gives the value in usd
    funders.push(msg.sender);
-   addressToAmountFunded[msg.sender] = msg.value; // hey-value pair
+   addressToAmountFunded[msg.sender] += msg.value; 
 
  // require keywords makes it necessary to send that much value , if its not sent  its reverted
 
@@ -95,8 +104,22 @@ address public owner; // to setip the owner of contract
 
  modifier onlyOwner { // we can setup customized modifiers for imp properties 
                       // and set it with the required function, just with the use of one word
-        require(msg.sender == owner, "Sender is not owner"); // to setup ownership
+
+        // require(msg.sender == i_owner, "Sender is not owner"); // to setup ownership
+          if(msg.sender != i_owner) {    // can be used in place of the above require statement
+              revert NotOwner();        // saves gas
+          }
         _; // it represent doing the rest of the code after the modifier condition is met
         // we can change the position of this _ thing to change the order of processing the function
  }
+
+ // What happens if someone sends this contract ETH without calling the fund function
+  
+   receive() external payable {
+       fund();
+   }
+
+   fallback() external payable {
+       fund();
+   }
 }
